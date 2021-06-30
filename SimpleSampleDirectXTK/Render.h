@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include "GlobalDefs.h"
 #include "SDKmisc.h"
 #include "d3dx11effect.h"
 #include "DXTrace.h"

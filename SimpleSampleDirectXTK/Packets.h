@@ -1,7 +1,5 @@
 #pragma once
 
-#include "GlobalDefs.h"
-
 #include <Eigen/Dense>
 #include <array>
 #ifndef _USE_MATH_DEFINES

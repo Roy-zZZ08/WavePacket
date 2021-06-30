@@ -27,12 +27,12 @@ using namespace DirectX;
 CFirstPersonCamera					g_Camera;               // A model viewing camera
 CDXUTDialogResourceManager			g_DialogResourceManager; // manager for shared resources of dialogs
 CD3DSettingsDlg						g_SettingsDlg;          // Device settings dialog
-CDXUTTextHelper* g_pTxtHelper = nullptr;
+
 CDXUTDialog							g_HUD;                  // dialog for standard controls
 CDXUTDialog							g_SampleUI;             // dialog for sample specific controls
 
 // simulation and rendering variables 
-float								m_waveSpeedUI = 0.02f;	// timestep for 60Hz: 16ms = 0.016s
+float								m_waveSpeed = 0.02f;	// timestep for 60Hz: 16ms = 0.016s
 float								InitBoxHeight = 10.0f;	
 bool								g_showBox = false;
 bool								g_waveStart = false;
@@ -42,18 +42,15 @@ Render* g_render;
 XMVECTOR							m_cursPos;
 int									m_displayedPackets = 0;
 int									FrameCount = 0;
-LARGE_INTEGER						StartingTimeSim, EndingTimeSim, ElapsedMicrosecondsSim, Frequency;  // simulation timing-related 
 
 
 //--------------------------------------------------------------------------------------
 // UI control IDs
 //--------------------------------------------------------------------------------------
 
-#define IDC_WAVESPEED	        10
-#define IDC_WAVESPEED_STATIC	11
+
 #define IDC_PACKETBUDGET		12
 #define IDC_PACKETBUDGET_STATIC 13
-#define IDC_SHOWENVELOPES		20
 #define IDC_RESET   			30
 #define IDC_NEWWAVE   			31
 
@@ -80,7 +77,6 @@ void CALLBACK OnD3D11FrameRender(ID3D11Device* pd3dDevice, ID3D11DeviceContext* 
 	float fElapsedTime, void* pUserContext);
 
 void InitApp();
-void RenderText(float fElapsedTime);
 
 //--------------------------------------------------------------------------------------
 // Entry point to the program. Initializes everything and goes into a message processing 
@@ -155,7 +151,6 @@ HRESULT CALLBACK OnD3D11CreateDevice(ID3D11Device* pd3dDevice, const DXGI_SURFAC
 
 	V_RETURN(g_DialogResourceManager.OnD3D11CreateDevice(pd3dDevice, pd3dImmediateContext));
 	V_RETURN(g_SettingsDlg.OnD3D11CreateDevice(pd3dDevice));
-	g_pTxtHelper = new CDXUTTextHelper(pd3dDevice, pd3dImmediateContext, &g_DialogResourceManager, 15);
 
 	// 视角设置
 	static const XMVECTORF32 vecPos = { 0.17f, 25.0f, 15.49f, 0.0f };
@@ -163,8 +158,8 @@ HRESULT CALLBACK OnD3D11CreateDevice(ID3D11Device* pd3dDevice, const DXGI_SURFAC
 	g_Camera.SetViewParams(vecPos, lookAt);
 
 	g_render = new Render();
-	// g_packets = new Packets(g_SampleUI.GetSlider(IDC_PACKETBUDGET)->GetValue());
 	g_packets = new Packets(10000);
+
 	return S_OK;
 }
 
@@ -187,7 +182,9 @@ HRESULT CALLBACK OnD3D11ResizedSwapChain(ID3D11Device* pd3dDevice, IDXGISwapChai
 	g_HUD.SetSize(170, 170);
 	g_SampleUI.SetLocation(pBackBufferSurfaceDesc->Width - 170, pBackBufferSurfaceDesc->Height - 300);
 	g_SampleUI.SetSize(170, 300);
+
 	g_render->UpdateDisplayMesh();
+
 	return S_OK;
 }
 
@@ -223,19 +220,8 @@ void CALLBACK OnD3D11FrameRender(ID3D11Device* pd3dDevice, ID3D11DeviceContext* 
 		g_render->g_pBoxPos->SetFloat(InitBoxHeight);
 
 
-	srand((unsigned)time(NULL));
-
-	
-	// Packet simulation (and timing)
-	QueryPerformanceFrequency(&Frequency);
-	QueryPerformanceCounter(&StartingTimeSim);
-
 	// 逐帧计算波的更新
-	g_packets->AdvectWavePackets(m_waveSpeedUI);
-	QueryPerformanceCounter(&EndingTimeSim);
-	ElapsedMicrosecondsSim.QuadPart = EndingTimeSim.QuadPart - StartingTimeSim.QuadPart;
-	ElapsedMicrosecondsSim.QuadPart *= 1000000;
-	ElapsedMicrosecondsSim.QuadPart /= Frequency.QuadPart;
+	g_packets->AdvectWavePackets(m_waveSpeed);
 
 	// scene and packet display
 	// get projection & view matrix from the camera class
@@ -258,12 +244,13 @@ void CALLBACK OnD3D11FrameRender(ID3D11Device* pd3dDevice, ID3D11DeviceContext* 
 	g_packets->packets.for_each_seq([&](auto& packet) { // regular wave packets
 		if (!packet.use3rd)
 		{
+			// 数据写入GPU顶点结构
 			g_render->m_packetData[packetChunk].posDir = XMFLOAT4(packet.midPos.x(), packet.midPos.y(), packet.travelDir.x(), packet.travelDir.y());
 			g_render->m_packetData[packetChunk].att = XMFLOAT4(packet.ampOld, (float)(2.0 * XM_PI / packet.k), (float)(packet.phase), (float)(packet.envelope));
 			g_render->m_packetData[packetChunk].att2 = XMFLOAT4(packet.bending, 0.0f, 0.0f, 0.0f);
 			m_displayedPackets++;
 			packetChunk++;
-			if (packetChunk >= PACKET_GPU_BUFFER_SIZE)  // send the wave packet data to the GPU
+			if (packetChunk >= 10000)  // send the wave packet data to the GPU
 			{
 				// 渲染Water Packet
 				pd3dImmediateContext->UpdateSubresource(g_render->m_ppacketPointMesh, 0, NULL, g_render->m_packetData, 0, 0);
@@ -279,7 +266,7 @@ void CALLBACK OnD3D11FrameRender(ID3D11Device* pd3dDevice, ID3D11DeviceContext* 
 		g_render->m_packetData[packetChunk].att2 = XMFLOAT4(ghost.bending, 0.0f, 0.0f, 0.0f);
 		m_displayedPackets++;
 		packetChunk++;
-		if (packetChunk >= PACKET_GPU_BUFFER_SIZE)  // send the wave packet data to the GPU
+		if (packetChunk >= 10000)  // send the wave packet data to the GPU
 		{
 			pd3dImmediateContext->UpdateSubresource(g_render->m_ppacketPointMesh, 0, NULL, g_render->m_packetData, 0, 0);
 			g_render->EvaluatePackets(packetChunk);
@@ -289,11 +276,11 @@ void CALLBACK OnD3D11FrameRender(ID3D11Device* pd3dDevice, ID3D11DeviceContext* 
 
 	pd3dImmediateContext->UpdateSubresource(g_render->m_ppacketPointMesh, 0, NULL, g_render->m_packetData, 0, 0);  // send the wave packet data to the GPU
 	g_render->EvaluatePackets(packetChunk);
-	g_render->DisplayScene( g_showBox, min(m_displayedPackets, PACKET_GPU_BUFFER_SIZE), mWorldViewProjection);
+	g_render->DisplayScene( g_showBox, min(m_displayedPackets, 10000), mWorldViewProjection);
 
 	// update scene cursor position
 	XMVECTOR cPos = g_Camera.GetEyePt();
-	XMVECTOR lPos = g_Camera.GetLookAtPt();
+	XMVECTOR lPos = g_Camera.GetLookAtPt(); 
 	XMVECTOR viewVec = lPos - cPos;
 	m_cursPos = XMVECTORF32{ 0, 0 };  // if the camera points up, point to scene center
 	if ((XMVectorGetY(viewVec) < 0.0) && (XMVectorGetY(cPos) > 0.0))
@@ -326,7 +313,6 @@ void CALLBACK OnD3D11DestroyDevice(void* pUserContext)
 	g_DialogResourceManager.OnD3D11DestroyDevice();
 	g_SettingsDlg.OnD3D11DestroyDevice();
 	DXUTGetGlobalResourceCache().OnDestroyDevice();
-	SAFE_DELETE(g_pTxtHelper);
 }
 
 

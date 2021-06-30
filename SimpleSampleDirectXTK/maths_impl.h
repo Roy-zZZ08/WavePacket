@@ -2,6 +2,9 @@
 
 #include "Packets.h"
 
+#define MIN_WATER_DEPTH 0.1f
+#define MAX_WATER_DEPTH 5.0f
+
 using namespace maths;
 
 inline constexpr float maths::rational_tanh(float x) noexcept //π¿À„tan

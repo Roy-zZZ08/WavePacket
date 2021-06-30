@@ -11,6 +11,7 @@
 	StringCchPrintf(wcFileInfo, 512, __VA_ARGS__); \
 	OutputDebugString(wcFileInfo); \
 }
+#define SCENE_EXTENT 50.0f
 
 #include "maths_impl.h"
 #include "packets_utils.h"

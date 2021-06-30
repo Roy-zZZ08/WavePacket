@@ -18,7 +18,7 @@
 
 #include <ScreenGrab.h>
 
-
+#define WATER_TERRAIN_FILE L"TestIsland.bmp"
 
 D3D11_INPUT_ELEMENT_DESC Render::SimpleVertexElements[] =
 {
@@ -105,7 +105,7 @@ Render::Render()
 	m_pAADepthStencil = NULL;
 	
 	// circular packet initialization
-	m_packetData = new PACKET_Vertex[PACKET_GPU_BUFFER_SIZE];
+	m_packetData = new PACKET_Vertex[10000];
 
 	// connect to shader variables
 	m_pRenderBoxTechnique = g_pEffect11->GetTechniqueByName("RenderBox");
@@ -118,14 +118,14 @@ Render::Render()
 	m_pDisplayTerrain = g_pEffect11->GetTechniqueByName( "DisplayTerrain" );
 	m_pDisplayAATechnique = g_pEffect11->GetTechniqueByName( "RenderAA" );
 
-	m_pOutputTex = g_pEffect11->GetVariableByName( "g_waterHeightTex" )->AsShaderResource();
-	m_pWaterPosTex = g_pEffect11->GetVariableByName( "g_waterPosTex" )->AsShaderResource();
-	m_pWaterTerrainTex = g_pEffect11->GetVariableByName( "g_waterTerrainTex" )->AsShaderResource();
+	m_pOutputTex = g_pEffect11->GetVariableByName( "t_WaterHeight" )->AsShaderResource();
+	m_pWaterPosTex = g_pEffect11->GetVariableByName( "t_WaterSamplePos" )->AsShaderResource();
+	m_pWaterTerrainTex = g_pEffect11->GetVariableByName( "t_DepthTerrain" )->AsShaderResource();
 
 	m_pDiffX = g_pEffect11->GetVariableByName( "g_diffX")->AsScalar();
 	m_pDiffY = g_pEffect11->GetVariableByName( "g_diffY")->AsScalar();
-	g_pmWorldViewProjection = g_pEffect11->GetVariableByName("g_mWorldViewProjection")->AsMatrix();
-	g_pmWorld = g_pEffect11->GetVariableByName("g_mWorld")->AsMatrix();
+	g_pmWorldViewProjection = g_pEffect11->GetVariableByName("m_MVP")->AsMatrix();
+	g_pmWorld = g_pEffect11->GetVariableByName("m_World")->AsMatrix();
 
 	g_pBoxPos= g_pEffect11->GetVariableByName("g_BoxPos")->AsScalar();
 	g_pTexCube = g_pEffect11->GetVariableByName("g_TexCube")->AsShaderResource();
@@ -232,7 +232,7 @@ Render::Render()
 	UpdateDisplayMesh();
 
 	// generate a point mesh for all packets, will be updated each frame
-	bd.ByteWidth = sizeof(PACKET_Vertex) * PACKET_GPU_BUFFER_SIZE;
+	bd.ByteWidth = sizeof(PACKET_Vertex) * 10000;
 	srd = { m_packetData, 0, 0 };
 	pd3dDevice->CreateBuffer(&bd, &srd, &m_ppacketPointMesh);
 
@@ -250,8 +250,8 @@ void Render::UpdateDisplayMesh()
 	context->GetDevice(&pd3dDevice);
 
 	HRESULT hr;
-	int width = (int)(WAVEMESH_WIDTH_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
-	int height = (int)(WAVEMESH_HEIGHT_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
+	int width = (int)(2*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
+	int height = (int)(2*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
 
 	SIMPLE_Vertex *dpd = new SIMPLE_Vertex[width*height];
 	for (int y = 0; y < height; y++)
@@ -294,8 +294,8 @@ void Render::UpdateDisplayMesh()
 	delete[](idB);
 
 	//create the GPU textures, viewports etc.
-	width = (int)(WAVETEX_WIDTH_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
-	height = (int)(WAVETEX_HEIGHT_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
+	width = (int)(2*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
+	height = (int)(4*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
 	m_vp.Width = (float)(width);
 	m_vp.Height = (float)(height);
 	m_vp.MinDepth = 0.0f;
@@ -337,14 +337,14 @@ void Render::UpdateDisplayMesh()
 	hr = pd3dDevice->CreateShaderResourceView( m_posTexture, NULL, &m_posTextureRV );
 	hr = pd3dDevice->CreateRenderTargetView(   m_posTexture, NULL, &m_posTextureTV );
 	// large anti aliasing texture
-	m_vpAA.Width = (float)(AA_OVERSAMPLE_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
-	m_vpAA.Height = (float)(AA_OVERSAMPLE_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
+	m_vpAA.Width = (float)(4*DXUTGetDXGIBackBufferSurfaceDesc()->Width);
+	m_vpAA.Height = (float)(4*DXUTGetDXGIBackBufferSurfaceDesc()->Height);
 	m_vpAA.MinDepth = 0.0f;
 	m_vpAA.MaxDepth = 1.0f;
 	m_vpAA.TopLeftX = 0;
 	m_vpAA.TopLeftY = 0;
-	texdesc.Width = AA_OVERSAMPLE_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Width;
-	texdesc.Height = AA_OVERSAMPLE_FACTOR*DXUTGetDXGIBackBufferSurfaceDesc()->Height;
+	texdesc.Width = 4*DXUTGetDXGIBackBufferSurfaceDesc()->Width;
+	texdesc.Height = 4*DXUTGetDXGIBackBufferSurfaceDesc()->Height;
 	if (m_AATexture != NULL)
 	{
 		m_AATexture->Release();
@@ -575,8 +575,8 @@ void Render::DisplayScene (bool showBox, int usedpackets, XMMATRIX& mWorldViewPr
     offset = 0;
 	context->IASetVertexBuffers( 0, 1, &m_pQuadMesh, &stride, &offset );
 	V( m_pOutputTex->SetResource( m_AATextureRV ) );
-	V( m_pDiffX->SetFloat( 1.0f/(float)(m_vpAA.Width*4.0f/AA_OVERSAMPLE_FACTOR) ) );
-	V( m_pDiffY->SetFloat( 1.0f/(float)(m_vpAA.Height*4.0f/AA_OVERSAMPLE_FACTOR) ) );
+	V( m_pDiffX->SetFloat( 1.0f/(float)(m_vpAA.Width*4.0f/4) ) );
+	V( m_pDiffY->SetFloat( 1.0f/(float)(m_vpAA.Height*4.0f/4) ) );
 	m_pDisplayAATechnique->GetPassByIndex(0)->Apply(0, context);   // downsample the rasterized image to screen
 	context->Draw( 2*3, 0 );
 

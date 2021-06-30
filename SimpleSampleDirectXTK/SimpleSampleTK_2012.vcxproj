@@ -410,7 +410,6 @@
     <ClInclude Include="DXTrace.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="Geometry.h" />
-    <ClInclude Include="GlobalDefs.h" />
     <ClInclude Include="map.h" />
     <ClInclude Include="maths.h" />
     <ClInclude Include="maths_impl.h" />

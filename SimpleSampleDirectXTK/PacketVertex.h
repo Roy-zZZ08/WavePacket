@@ -6,6 +6,8 @@
 using namespace Eigen;
 using namespace maths;
 
+#define SCENE_EXTENT 50.0f
+
 class PacketVertex {
 public:
 	PacketVertex(const PacketVertex&) = default;

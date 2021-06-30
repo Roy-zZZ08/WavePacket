@@ -2,7 +2,10 @@
 
 #include <vector>
 
+
 using namespace Eigen;
+
+#define SCENE_EXTENT 50.0f
 
 template<typename T>
 class map {

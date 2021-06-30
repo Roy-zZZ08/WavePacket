@@ -45,9 +45,6 @@
     <ClInclude Include="maths_impl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GlobalDefs.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Packets.h">
       <Filter>Header Files</Filter>
     </ClInclude>
