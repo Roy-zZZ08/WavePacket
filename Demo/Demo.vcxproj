@@ -27,7 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>WavePacketViewer</ProjectName>
+    <ProjectName>Demo</ProjectName>
     <ProjectGuid>{AE8411FC-DBA2-437D-8A39-E2E7885E9F55}</ProjectGuid>
     <RootNamespace>SimpleSampleTK</RootNamespace>
     <Keyword>Win32Proj</Keyword>
@@ -421,7 +421,7 @@
     <ClInclude Include="PacketVertex.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="vertex.h" />
-    <ResourceCompile Include="SimpleSampleTK.rc" />
+    <ResourceCompile Include="Demo.rc" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3dUtil.cpp" />
@@ -469,6 +469,11 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</TreatWarningAsError>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="Media\TestIsland.bmp">
+      <DeploymentContent>true</DeploymentContent>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
