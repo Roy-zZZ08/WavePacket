@@ -125,5 +125,5 @@ void GhostPacket::set_from_wave(const Packets& packets, const WavePacket& p, con
 	ghost.k = p.k;
 	ghost.phase = p.phOld;
 	ghost.dPhase = p.phase - p.phOld;
-	ghost.bending = intersection_dist(ghost.pos, ghost.dir, p.vertices[0].pOld, p.vertices[0].dOld);
+	ghost.bending = intersection_dist(ghost.pos, ghost.dir, p.vertices[0].lastPos, p.vertices[0].lastDir);
 }

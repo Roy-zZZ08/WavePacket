@@ -88,10 +88,6 @@ namespace Geometry
 		const std::function<DirectX::XMFLOAT4(float, float)>& colorFunc = [](float x, float z) { return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f); });
 }
 
-
-
-
-
 namespace Geometry
 {
 	namespace Internal

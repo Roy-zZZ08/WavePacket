@@ -124,7 +124,7 @@ public:
 	// initialization
 public:
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-	
+
 	Packets(int packetBudget);
 
 private:

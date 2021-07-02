@@ -112,17 +112,17 @@ inline void maths::calc_refraction(const Packets& packets, const WavePacket& pac
 	const auto w0 = packet.w0;
 	const auto kIn = packet.k;
 
-	out.dir = out.dOld;
+	out.dir = out.lastDir;
 
-	const auto speed1 = calc_wp(calc_water_depth(packets, out.pOld), w0, kIn).speed;
+	const auto speed1 = calc_wp(calc_water_depth(packets, out.lastPos), w0, kIn).speed;
 	out.speed = speed1;
 
-	const auto nDir = packets.groundNormal.at_world(out.pOld);
+	const auto nDir = packets.groundNormal.at_world(out.lastPos);
 	if (abs(nDir.x()) + abs(nDir.y()) > 0.1f) {
 
 		// compute new direction and speed based on snells law (depending on water depth)
-		const auto vDir1 = out.dOld;
-		const auto pNext = out.pOld + packets.m_elapsedTime * speed1 * vDir1;
+		const auto vDir1 = out.lastDir;
+		const auto pNext = out.lastPos + packets.m_elapsedTime * speed1 * vDir1;
 		const auto speed2 = calc_wp(calc_water_depth(packets, pNext), w0, kIn).speed;
 
 		// suppose nDir forms an obtuse angle with vDir1, so make cos1 positive
@@ -145,12 +145,12 @@ inline void maths::calc_refraction(const Packets& packets, const WavePacket& pac
 		if (vDir2.norm() > 0.000001f) out.dir = vDir2.normalized();
 	}
 
-	out.pos = out.pOld + packets.m_elapsedTime * out.speed * out.dir;  // advect wave vertex position
+	out.pos = out.lastPos + packets.m_elapsedTime * out.speed * out.dir;  // advect wave vertex position
 }
 
 inline void maths::calc_reflection(const Packets& packets, PacketVertex& out) {
 	// step back until we are outside the boundary, using binary search
-	auto pNew = out.pOld;
+	auto pNew = out.lastPos;
 	Vector2f pDelta = out.dir * packets.m_elapsedTime * out.speed;
 	for (int j = 0; j < 16; j++)
 	{
@@ -159,7 +159,7 @@ inline void maths::calc_reflection(const Packets& packets, PacketVertex& out) {
 			pNew = pNext;
 		pDelta *= 0.5f;
 	}
-	const auto travelled = (pNew - out.pOld).norm();
+	const auto travelled = (pNew - out.lastPos).norm();
 
 	// compute the traveling direction after the bounce
 	const auto nDir = packets.borderNormal.at_world(out.pos);

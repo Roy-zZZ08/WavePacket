@@ -6,26 +6,26 @@
 using namespace Eigen;
 using namespace maths;
 
-#define SCENE_EXTENT 50.0f
+#define SCENE_SIZE 50.0f
 
 class PacketVertex {
 public:
-	PacketVertex(const PacketVertex&) = default;
 	PacketVertex() = default;
+	PacketVertex(const PacketVertex&) = default;
 
-	bool bounced = false;	// indicates if this vertex bounced in this timestep
+	bool bounced = false;
 
-	Vector2f pos;			// 2D position
-	Vector2f pOld;			// position in last timestep (needed to handle bouncing)
-	Vector2f dir;			// current movement direction
-	Vector2f dOld;			// direction in last timestep (needed to handle bouncing)
-	float speed = 0.0f;		// speed of the particle
-	float sOld = 0.0f;		// speed in last timestep (needed to handle bouncing)
+	Vector2f pos;
+	Vector2f lastPos;
+	Vector2f dir;
+	Vector2f lastDir;
+	float speed = 0.0f;
+	float lastSpeed = 0.0f;
 
 	void setOld(const PacketVertex& v) {
-		pOld = v.pos;
-		dOld = v.dir;
-		sOld = v.speed;
+		lastPos = v.pos;
+		lastDir = v.dir;
+		lastSpeed = v.speed;
 	}
 
 	void setNew(const PacketVertex& v) {
@@ -36,9 +36,9 @@ public:
 
 	PacketVertex getOld() const {
 		PacketVertex v;
-		v.pos = pOld;
-		v.dir = dOld;
-		v.speed = sOld;
+		v.pos = lastPos;
+		v.dir = lastDir;
+		v.speed = lastSpeed;
 		return v;
 	}
 
@@ -54,17 +54,17 @@ public:
 
 	static PacketVertex middle2(const PacketVertex& a, const PacketVertex& b) {
 		auto middle = maths::interp(a.getOld(), b.getOld(), 0.5f);
-		middle.dir = (0.5f * (a.pos + b.pos) - 0.5f * (a.pOld + b.pOld));
+		middle.dir = (0.5f * (a.pos + b.pos) - 0.5f * (a.lastPos + b.lastPos));
 		return middle.normalized();
 	}
 
 	bool going_out() const {
 		const auto& v = *this;
-		const auto dir = v.pos - v.pOld;
-		return ((v.pos.x() < -0.5f * SCENE_EXTENT) && (dir.x() < 0.0))
-			|| ((v.pos.x() > +0.5f * SCENE_EXTENT) && (dir.x() > 0.0))
-			|| ((v.pos.y() < -0.5f * SCENE_EXTENT) && (dir.y() < 0.0))
-			|| ((v.pos.y() > +0.5f * SCENE_EXTENT) && (dir.y() > 0.0));
+		const auto dir = v.pos - v.lastPos;
+		return ((v.pos.x() < -0.5f * SCENE_SIZE) && (dir.x() < 0.0))
+			|| ((v.pos.x() > +0.5f * SCENE_SIZE) && (dir.x() > 0.0))
+			|| ((v.pos.y() < -0.5f * SCENE_SIZE) && (dir.y() < 0.0))
+			|| ((v.pos.y() > +0.5f * SCENE_SIZE) && (dir.y() > 0.0));
 	}
 
 	inline float dist_to(const PacketVertex& b) {

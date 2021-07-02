@@ -5,7 +5,7 @@
 
 using namespace Eigen;
 
-#define SCENE_EXTENT 50.0f
+#define SCENE_SIZE 50.0f
 
 template<typename T>
 class map {
@@ -75,8 +75,8 @@ public:
 private:
 	inline Vector2f world2tex(const Vector2f& p) const {
 		return Vector2f(
-			(p.x() / SCENE_EXTENT + 0.5f) * width,
-			(p.y() / SCENE_EXTENT + 0.5f) * height
+			(p.x() / SCENE_SIZE + 0.5f) * width,
+			(p.y() / SCENE_SIZE + 0.5f) * height
 		);
 	}
 

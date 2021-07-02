@@ -11,7 +11,7 @@
 	StringCchPrintf(wcFileInfo, 512, __VA_ARGS__); \
 	OutputDebugString(wcFileInfo); \
 }
-#define SCENE_EXTENT 50.0f
+#define SCENE_SIZE 50.0f
 
 #include "maths_impl.h"
 #include "packets_utils.h"
@@ -100,7 +100,7 @@ void Packets::boundaryDistanceTransform() {
 		{
 			auto dist = sqrt(pMap2.at(x, y));
 			if (bound.at(x, y) > 0.5f) dist *= -1;		// negative distance INSIDE a boundary regions
-			dist *= SCENE_EXTENT / groundWidth;
+			dist *= SCENE_SIZE / groundWidth;
 			boundDist.at(x, y) = dist;
 		}
 
@@ -217,10 +217,10 @@ void Packets::CreatePacket(float pos1x, float pos1y, float pos2x, float pos2y, f
 
 	auto& first = packets.claim(*this);
 
-	first.vertices[0].pOld = first.vertices[0].pos = Vector2f(pos1x, pos1y);
-	first.vertices[1].pOld = first.vertices[1].pos = Vector2f(pos2x, pos2y);
-	first.vertices[0].dOld = first.vertices[0].dir = Vector2f(dir1x, dir1y);
-	first.vertices[1].dOld = first.vertices[1].dir = Vector2f(dir2x, dir2y);
+	first.vertices[0].lastPos = first.vertices[0].pos = Vector2f(pos1x, pos1y);
+	first.vertices[1].lastPos = first.vertices[1].pos = Vector2f(pos2x, pos2y);
+	first.vertices[0].lastDir = first.vertices[0].dir = Vector2f(dir1x, dir1y);
+	first.vertices[1].lastDir = first.vertices[1].dir = Vector2f(dir2x, dir2y);
 	
 	first.vertices[0].bounced = false;
 	first.vertices[1].bounced = false;
@@ -242,8 +242,8 @@ void Packets::CreatePacket(float pos1x, float pos1y, float pos2x, float pos2y, f
 	first.d_L = 0.0;
 	first.d_H = 0.0;
 	
-	first.vertices[0].sOld = first.vertices[0].speed = calc_wp(calc_water_depth(*this, first.vertices[0].pos), first.w0, first.k).speed;
-	first.vertices[1].sOld = first.vertices[1].speed = calc_wp(calc_water_depth(*this, first.vertices[1].pos), first.w0, first.k).speed;
+	first.vertices[0].lastSpeed = first.vertices[0].speed = calc_wp(calc_water_depth(*this, first.vertices[0].pos), first.w0, first.k).speed;
+	first.vertices[1].lastSpeed = first.vertices[1].speed = calc_wp(calc_water_depth(*this, first.vertices[1].pos), first.w0, first.k).speed;
 	first.update_envelope();
 	first.blend_in();
 
@@ -372,7 +372,7 @@ void Packets::UpdateBounces() {
 			{
 				const auto nDir = borderNormal.at_world(v3.pos); // get sliding direction
 				v3.dir = Vector2f(-nDir.y(), nDir.x());
-				if (v3.dir.dot(v3.dOld) < 0) v3.dir *= -1.0f;
+				if (v3.dir.dot(v3.lastDir) < 0) v3.dir *= -1.0f;
 
 				v3.pos = projectToBoundary(v3.pos);
 
@@ -427,7 +427,7 @@ void Packets::WavenumberSubdivision() {
 				// first create a ghost for the old packet
 				auto& ghost = ghosts.claim();
 				auto middle = interp(packet.vertices[0].getOld(), packet.vertices[1].getOld(), 0.5f);
-				middle.dir = avg(packet.vertices[0].pos, packet.vertices[1].pos) - avg(packet.vertices[0].pOld, packet.vertices[1].pOld);
+				middle.dir = avg(packet.vertices[0].pos, packet.vertices[1].pos) - avg(packet.vertices[0].lastPos, packet.vertices[1].lastPos);
 				ghost.set_from_wave(*this, packet, middle.normalized());
 
 				auto k_M = packet.k;
@@ -589,7 +589,7 @@ void Packets::UpdateDisplayVars() {
 	packets.for_each([&](auto& packet, auto it) {
 		// update variables needed for packet display
 		const Vector2f posMidNew = avg(packet.vertices[0].pos, packet.vertices[1].pos);
-		const Vector2f posMidOld = avg(packet.vertices[0].pOld, packet.vertices[1].pOld);
+		const Vector2f posMidOld = avg(packet.vertices[0].lastPos, packet.vertices[1].lastPos);
 		const Vector2f dirN = (posMidNew - posMidOld).normalized();				// vector in traveling direction
 		packet.midPos = posMidNew;
 		packet.travelDir = dirN;
