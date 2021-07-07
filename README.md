@@ -1,5 +1,7 @@
 # WavePackets
 
+### 2021 春夏计算机图形学研究进展
+
 ## 运行与配置
 
 项目需要使用 Visual Studio 2019 进行编译，并且安装 Windows SDK 8.1。
